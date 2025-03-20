@@ -40,6 +40,214 @@ inline std::ostream& operator<<(std::ostream& os, const ClData& d)
   return os;
 }
 
+void CompAnalyzer::calc_blocked(
+    const LiteralIndexedVector<LitWatchList> & watches,
+    const ClauseAllocator* alloc, const vector<ClauseOfs>& long_irred_cls)
+{
+  const uint32_t n = max_var+1;
+  clid_to_blocking_lits.resize(long_irred_cls.size()+1);
+  if (!conf.do_blocked_clauses) return;
+
+  if (counter->get_opt_indep_support_end() >= max_var+1) {
+    verb_print(1, "No need to calculate blocked clauses, as all vars are opt independent");
+    return;
+  }
+  if (long_irred_cls.empty()) {
+    verb_print(1, "No need to calculate blocked clauses, since there are only binary irred clauses");
+    return;
+  }
+  if (n < 10) {
+    verb_print(1, "No need to calculate blocked clauses, the number of variables is too low");
+    return;
+  }
+  const double start_time = cpu_time();
+
+  // build occ lists
+  vector<vector<Lit>> id_to_cl;
+  vector<vector<uint32_t>> occs;
+  occs.resize(n*2);
+  uint32_t clid_bin_start;
+
+  if (true) {
+    uint32_t clid = 1;
+    id_to_cl.resize(1);
+    vector<Lit> tmp;
+    for (const auto& off: long_irred_cls) {
+      const Clause& cl = *alloc->ptr(off);
+      assert(cl.size() > 2);
+      tmp.clear();
+      tmp.insert(tmp.end(), cl.begin(), cl.end());
+      for(const auto& l: cl) occs[l.raw()].push_back(clid);
+      id_to_cl.push_back(tmp);
+      assert(id_to_cl.size()-1 == clid);
+      clid++;
+    }
+    clid_bin_start = clid;
+
+    for (uint32_t v = 1; v < n; v++) {
+      for(uint32_t i = 0; i < 2; i++) {
+        Lit l(v, i);
+        for (const auto& bincl: watches[l].binaries) {
+          if (bincl.irred()) {
+            tmp.clear();
+            tmp.push_back(l);
+            tmp.push_back(bincl.lit());
+            occs[tmp[0].raw()].push_back(clid);
+            occs[tmp[1].raw()].push_back(clid);
+            id_to_cl.push_back(tmp);
+            assert(id_to_cl.size()-1 == clid);
+            clid++;
+          }
+        }
+      }
+    }
+  }
+
+  // System below does NOT work if any literal is already set
+  // This is guaranteed to be NOT BAD if arjun is run before
+  bool bad = false;
+  for (uint32_t v = 1; v < n; v++) {
+    for(uint32_t i = 0; i < 2; i++) {
+      Lit l(v, i);
+      if (!is_unknown(l)) bad = true;
+    }
+  }
+  if (bad) {
+    verb_print(1, "Some vars are not unknown, cannot calculate blocked clauses");
+    return;
+  }
+
+  uint32_t blocked_tot = 0;
+  vector<char> seen(n*2, 0);
+  vector<char> seen_set(n*2, 0);
+  vector<Lit> seen_set_clear;
+  vector<Lit> todo_lits;
+  for (uint32_t v = 1; v < n; v++) for(uint32_t i = 0; i < 2; i++) todo_lits.push_back(Lit(v, i));
+  std::shuffle(todo_lits.begin(), todo_lits.end(), mtrand);
+
+  int64_t todo_total = 400*1000LL*1000LL;
+  uint32_t lit_abandoned = 0;
+  for (const auto& l_set: todo_lits) {
+    int64_t todo_per_lit = 1000*1000LL;
+    if (todo_total <= 0) break;
+    bool unsat = false;
+    /* cout << "lit set: " << l_set << endl; */
+    vector<Lit> prop_q;
+    prop_q.push_back(l_set);
+    // slow propagation..
+    SLOW_DEBUG_DO(for(const auto& l: seen_set) assert(l == 0));
+    while(!prop_q.empty()) {
+      Lit p = prop_q.back();
+      seen_set[p.raw()] = 1;
+      seen_set_clear.push_back(p);
+      prop_q.pop_back();
+      for(const auto& cl_id: occs[l_set.neg().raw()]) {
+        const auto& cl = id_to_cl[cl_id];
+        bool sat = false;
+        uint32_t unk = 0;
+        Lit lit_unk = Lit();
+        for(const auto& l: cl) {
+          todo_per_lit--;
+          todo_total--;
+          if (seen_set[l.raw()]) {
+            sat = 1;
+            break;
+          }
+          if (seen[l.neg().raw()]) continue;
+          unk++;
+          lit_unk = l;
+          if (unk > 1) break;
+        }
+        if (!sat && unk == 0) {
+          // wow, unsat
+          unsat = true;
+          return;
+        }
+        if (sat) continue;
+        if (unk == 1) prop_q.push_back(lit_unk);
+      }
+    }
+    if (unsat) goto next;
+
+    for(uint32_t clid = 1; clid < clid_bin_start; clid++) {
+      if (todo_per_lit <= 0) {lit_abandoned++; goto next;}
+      const auto& cl = id_to_cl[clid];
+      assert(cl.size() > 2);
+
+      // already satisfied
+      bool sat_already = false;
+      for(const auto& l: cl) if (seen_set[l.raw()]) {
+        sat_already = true;
+        break;
+      }
+      if (sat_already) continue;
+
+      // cannot actually be blocked
+      bool could_be_blocked = false;
+      for(const auto& l: cl) if (l.var() >= counter->get_opt_indep_support_end()) {
+        could_be_blocked = true;
+        break;
+      }
+      if (!could_be_blocked) continue;
+      /* cout << "cl to block: " << cl << endl; */
+
+      bool blocked = false;
+      SLOW_DEBUG_DO(for(const auto& l: seen) assert(l == 0));
+      for(const auto& l: cl) seen[l.raw()] = 1;
+      for(const auto& l: cl) if (l.var() >= counter->get_opt_indep_support_end()) {
+        // could be blocked on this var, i.e. l.var()
+        // must be blocked relative to all other clauses it could be resolved with
+        blocked = true;
+        for(const auto& clid2: occs[l.neg().raw()]) {
+          bool blocked_rel_this = false;
+          const auto& cl2 = id_to_cl[clid2];
+          for(const auto& l2: cl2) {
+            todo_per_lit--;
+            todo_total--;
+            if (l2.neg() == l) continue; // resolve on this, skip
+            /* if (seen[l2.neg().raw()]) { */
+            if (seen_set[l2.raw()]|| seen[l2.neg().raw()]) {
+              /* cout << "blocked with cl2 " << cl2 << " on: " << l2
+               * << " -- actually, set instead? " << (int)(l2 == l_set) << endl; */
+              blocked_rel_this = true;
+              break;
+            }
+          }
+          if (!blocked_rel_this) {
+            blocked = false;
+            break;
+          }
+        }
+        if (!blocked) continue; // try next var
+        if (blocked) {
+          /* cout << "BINGO! cl: " << cl << " blocked on: " << l << " given: " << l_set << endl; */
+          clid_to_blocking_lits[clid].push_back(l_set);
+          blocked_tot++;
+          break;
+        }
+      }
+      for(const auto& l: cl) seen[l.raw()] = 0;
+    }
+
+next:
+    for(const auto& l: seen_set_clear) seen_set[l.raw()] = 0;
+    seen_set_clear.clear();
+  }
+
+  uint32_t cls_blocked = 0;
+  for(auto& lits: clid_to_blocking_lits) {
+    if (!lits.empty()) cls_blocked++;
+    std::shuffle(lits.begin(), lits.end(), mtrand);
+  }
+
+  verb_print(1, "Blocked tot: " << blocked_tot
+      << " lits abandoned: " << lit_abandoned << " global t-out: " << (todo_total <= 0)
+      << " t-remain: " << (double)todo_total/(1000.0*1000.0) << "M"
+      << " avg blocked/lit: " << (double)blocked_tot/(double)(n*2-2) << " T: " << cpu_time()-start_time);
+  verb_print(1, "cls with blocked lits: " << cls_blocked << " / " << long_irred_cls.size()
+      << " = " << (double)cls_blocked/(double)long_irred_cls.size()*100 << "%");
+}
+
 // Builds occ lists and sets things up, Done exactly ONCE for a whole counting runkk
 // this sets up unif_occ
 void CompAnalyzer::initialize(
@@ -60,7 +268,8 @@ void CompAnalyzer::initialize(
     return a.size() < b.size();
   };
   auto long_irred_cls = _long_irred_cls;
-  std::sort(long_irred_cls.begin(), long_irred_cls.end(), mysorter);
+  std::stable_sort(long_irred_cls.begin(), long_irred_cls.end(), mysorter);
+  calc_blocked(watches, alloc, long_irred_cls);
 
   max_clid = 1;
   max_tri_clid = 1;
@@ -74,17 +283,18 @@ void CompAnalyzer::initialize(
     const Clause& cl = *alloc->ptr(off);
     assert(cl.size() > 2);
     const uint32_t long_cl_off = long_clauses_data.size();
+
     if (cl.size() > 3) {
       Lit blk_lit = cl[cl.size()/2];
       for(const auto&l: cl) long_clauses_data.push_back(l);
       long_clauses_data.push_back(SENTINEL_LIT);
-
       for(const auto& l: cl) {
         const uint32_t var = l.var();
         assert(var < n);
         ClData d;
         d.id = max_clid;
         d.blk_lit = blk_lit;
+        d.example_blocking = NOT_A_LIT;
         d.off = long_cl_off;
         unif_occ_long[var].push_back(d);
       }
@@ -98,6 +308,7 @@ void CompAnalyzer::initialize(
         ClData d;
         d.id = max_clid;
         d.blk_lit = lits[0];
+        d.example_blocking = NOT_A_LIT;
         d.off = lits[1].raw();
         unif_occ_long[l.var()].push_back(d);
       }
@@ -183,11 +394,17 @@ void CompAnalyzer::initialize(
       }
     }
 
-    // check longs
+    // check longs & adjust blocking lits to random ones
     for(uint32_t v = 0; v < unif_occ_long.size(); v++) {
       assert(unif_occ_long[v].size() == holder.size_long(v));
       for(uint32_t i = 0; i < unif_occ_long[v].size(); i++) {
         assert(unif_occ_long[v][i] == holder.begin_long(v)[i]);
+        auto& d = holder.begin_long(v)[i];
+        auto& blk_lits = clid_to_blocking_lits[d.id];
+        if (!blk_lits.empty()) {
+          std::uniform_int_distribution<uint32_t> dist(0, blk_lits.size()-1);
+          d.example_blocking = blk_lits[dist(mtrand)];
+        }
       }
     }
   }
@@ -342,7 +559,8 @@ void CompAnalyzer::record_comp(const uint32_t var, const uint32_t sup_comp_long_
         if (archetype.clause_unvisited_in_sup_comp(d.id)) {
           const Lit l1 = d.get_lit1();
           const Lit l2 = d.get_lit2();
-          if (is_true(l1) || is_true(l2)) {
+          if (is_true(l1) || is_true(l2) ||
+              (d.example_blocking != NOT_A_LIT && is_true(d.example_blocking))) {
             archetype.clear_cl(d.id);
             sat = true;
             /* goto end_sat; */
@@ -355,7 +573,8 @@ void CompAnalyzer::record_comp(const uint32_t var, const uint32_t sup_comp_long_
         } else continue;
       } else {
         if (archetype.clause_unvisited_in_sup_comp(d.id)) {
-          if (is_true(d.blk_lit)) {
+          if (is_true(d.blk_lit) ||
+              (d.example_blocking != NOT_A_LIT && is_true(d.example_blocking))) {
             archetype.clear_cl(d.id);
             sat = true;
             goto end_sat;
@@ -393,6 +612,7 @@ end_sat:;
 CompAnalyzer::CompAnalyzer(
     const LiteralIndexedVector<TriValue> & lit_values,
     Counter* _counter) :
+      mtrand(_counter->get_conf().seed),
       values(lit_values),
       conf(_counter->get_conf()),
       indep_support_end(_counter->get_indep_support_end()),

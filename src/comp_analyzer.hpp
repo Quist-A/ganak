@@ -52,6 +52,7 @@ struct ClData {
   uint32_t id;
   uint32_t off;
   Lit blk_lit;
+  Lit example_blocking = NOT_A_LIT;
   bool operator==(const ClData& other) const {
     return id == other.id && off == other.off && blk_lit == other.blk_lit;
   }
@@ -178,6 +179,11 @@ public:
   CompArchetype& get_archetype() { return archetype; }
 
 private:
+  void calc_blocked(const LiteralIndexedVector<LitWatchList> & literals,
+      const ClauseAllocator* alloc, const vector<ClauseOfs>& long_irred_cls);
+  vector<vector<Lit>> clid_to_blocking_lits;
+  std::mt19937_64 mtrand;
+
   // the id of the last clause
   // note that clause ID is the clause number,
   // different from the offset of the clause in the literal pool

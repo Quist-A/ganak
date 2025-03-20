@@ -133,6 +133,7 @@ void add_ganak_options()
     myopt("--appmct", conf.appmc_timeout, atof, "after K seconds");
     myopt("--epsilon", conf.appmc_epsilon, atof, "AppMC epsilon");
     myopt("--chronobt", conf.do_chronobt, atof, "ChronoBT. SAT must be DISABLED or this will fail");
+    myopt("--blocked", conf.do_blocked_clauses, atof, "Blocked clauses, semi-dynamic, with example lit");
 //
 // Arjun options
     myopt("--arjun", do_arjun, atoi, "Use arjun");
