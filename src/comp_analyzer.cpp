@@ -284,6 +284,13 @@ void CompAnalyzer::initialize(
     assert(cl.size() > 2);
     const uint32_t long_cl_off = long_clauses_data.size();
 
+    Lit example_blocking = NOT_A_LIT;
+    auto& blk_lits = clid_to_blocking_lits[max_clid];
+    if (!blk_lits.empty()) {
+      std::uniform_int_distribution<uint32_t> dist(0, blk_lits.size()-1);
+      example_blocking = blk_lits[dist(mtrand)];
+    }
+
     if (cl.size() > 3) {
       Lit blk_lit = cl[cl.size()/2];
       for(const auto&l: cl) long_clauses_data.push_back(l);
@@ -294,7 +301,7 @@ void CompAnalyzer::initialize(
         ClData d;
         d.id = max_clid;
         d.blk_lit = blk_lit;
-        d.example_blocking = NOT_A_LIT;
+        d.example_blocking = example_blocking;
         d.off = long_cl_off;
         unif_occ_long[var].push_back(d);
       }
@@ -308,7 +315,7 @@ void CompAnalyzer::initialize(
         ClData d;
         d.id = max_clid;
         d.blk_lit = lits[0];
-        d.example_blocking = NOT_A_LIT;
+        d.example_blocking = example_blocking;
         d.off = lits[1].raw();
         unif_occ_long[l.var()].push_back(d);
       }
@@ -399,12 +406,6 @@ void CompAnalyzer::initialize(
       assert(unif_occ_long[v].size() == holder.size_long(v));
       for(uint32_t i = 0; i < unif_occ_long[v].size(); i++) {
         assert(unif_occ_long[v][i] == holder.begin_long(v)[i]);
-        auto& d = holder.begin_long(v)[i];
-        auto& blk_lits = clid_to_blocking_lits[d.id];
-        if (!blk_lits.empty()) {
-          std::uniform_int_distribution<uint32_t> dist(0, blk_lits.size()-1);
-          d.example_blocking = blk_lits[dist(mtrand)];
-        }
       }
     }
   }
