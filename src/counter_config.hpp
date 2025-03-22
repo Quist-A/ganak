@@ -40,6 +40,7 @@ struct CounterConfiguration {
   int max_num_rst = -1;
   uint32_t lbd_cutoff_always_keep_cube = 3;
   uint32_t max_num_cubes_per_restart = 6;
+  int do_sat_cl_check = 1;
 
   int cache_time_update = 2;
 

@@ -4280,6 +4280,6 @@ bool Counter::check_any_new_sat(uint32_t prev_trail) const {
       if (!already_sat) return true;
     }
   }
-  cout << "returning FALSE from linkin_any_sat, prev trail:" << prev_trail << " trail now: " << trail.size() << endl;
+  /* cout << "returning FALSE from linkin_any_sat, prev trail:" << prev_trail << " trail now: " << trail.size() << endl; */
   return false;
 }

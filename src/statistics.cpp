@@ -115,6 +115,8 @@ void DataAndStatistics::print_short(const Counter* counter, const CompCache* cac
     << setw(5) << comp_sorts/1000 << " / "
     << setw(5) << std::setprecision(8) << safe_div(comp_sizes, comp_sorts))
     << std::setprecision(2);
+  verb_print(1, "comp not recompute due to sat  " << no_new_sat_cls << " / " << new_sat_cls << " perc: "
+      << safe_div(no_new_sat_cls, (no_new_sat_cls+new_sat_cls)));
 
   verb_print(1, "vivif: try/cls/clviv/litsravg  "
     << setw(9) << vivif_tried << " "

@@ -176,6 +176,7 @@ public:
   uint32_t get_bin_cls() const { return archetype.num_bin_cls; }
   uint32_t get_max_var() const { return max_var; }
   CompArchetype& get_archetype() { return archetype; }
+  void maybe_reset_var(const uint32_t v);
 
 private:
   // the id of the last clause

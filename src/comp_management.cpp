@@ -101,10 +101,13 @@ void CompManager::record_remaining_comps_for(StackLevel &top) {
   const Comp& super_comp = get_super_comp(top);
   const uint32_t new_comps_start_ofs = comp_stack.size();
 
-  if (counter->dec_level() >= 1 && !counter->check_any_new_sat(super_comp.get_trail_sz())) {
+  if (conf.do_sat_cl_check && counter->dec_level() >= 1 && !counter->check_any_new_sat(super_comp.get_trail_sz())) {
     Comp *p_new_comp = copy_comp(&super_comp, counter);
+    all_vars_in_comp(*p_new_comp, vt) ana.maybe_reset_var(*vt);
     deal_with_new_comp(top, super_comp, p_new_comp);
+    stats.no_new_sat_cls++;
   } else {
+    stats.new_sat_cls++;
     // This reinitializes archetype, sets up seen[] or all cls&vars unvisited (if unset), etc.
     // Sets all unknown vars in seen[] and sets all clauses in seen[] to unvisited
     // Also zeroes out frequency_scores. Sets num_long_cls and num_bin_cls to 0

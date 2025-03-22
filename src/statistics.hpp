@@ -125,6 +125,8 @@ public:
   // Components
   uint64_t comp_sorts = 0;
   uint64_t comp_sizes = 0;
+  uint64_t no_new_sat_cls = 0;
+  uint64_t new_sat_cls = 0;
 
   uint64_t num_cached_comps = 0;
   uint64_t total_num_cached_comps = 0;

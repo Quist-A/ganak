@@ -213,11 +213,19 @@ bool CompAnalyzer::explore_comp(const uint32_t v, const uint32_t sup_comp_long_c
   return true;
 }
 
+void CompAnalyzer::maybe_reset_var(const uint32_t v) {
+  if (holder.tstamp(v) < counter->get_tstamp(holder.lev(v))) {
+    /* holder.size_bin(v) = holder.orig_size_bin(v); */
+    holder.size_long(v) = holder.orig_size_long(v);
+    reset_comps++;
+  }
+}
+
 // Each variable knows the level it was visited at, and the stimestamp at the time
 // Each level knows the HIGHEST stamp it has been seen
 // When checking a var, we go to the level, see the stamp, if it's larger than the stamp of the var,
 // we need to reset the size
-
+//
 // Create a component based on variable provided
 void CompAnalyzer::record_comp(const uint32_t var, const uint32_t sup_comp_long_cls, const uint32_t sup_comp_bin_cls) {
   SLOW_DEBUG_DO(assert(is_unknown(var)));
