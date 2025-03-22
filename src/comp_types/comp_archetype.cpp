@@ -13,7 +13,7 @@ using namespace GanakInt;
 
 // Note that this will ensure that variables and clauses are ordered
 // this means that their hash is easily comparable
-Comp* CompArchetype::make_comp(const uint32_t comp_vars_size) {
+Comp* CompArchetype::make_comp(const uint32_t comp_vars_size, uint32_t trail_sz) {
   debug_print(COLREDBG << __PRETTY_FUNCTION__ << " start.");
   Comp* p_new_comp = reserve_comp_space(comp_vars_size, num_long_cls);
 
@@ -33,6 +33,7 @@ Comp* CompArchetype::make_comp(const uint32_t comp_vars_size) {
     }
   p_new_comp->set_num_bin_cls(num_bin_cls);
   p_new_comp->close_cls_data();
+  p_new_comp->set_trail_sz(trail_sz);
 
   debug_print(COLREDBG << __PRETTY_FUNCTION__ << " finish." <<
       " New comp vars: " << p_new_comp->nVars() <<

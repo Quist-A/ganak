@@ -167,8 +167,8 @@ public:
 
   // explore_comp has been called already
   // which set up search_stack, seen[] etc.
-  inline Comp *make_comp_from_archetype(){
-    auto p = archetype.make_comp(comp_vars.size());
+  Comp* make_comp_from_archetype(const uint32_t trail_sz) {
+    auto p = archetype.make_comp(comp_vars.size(), trail_sz);
     return p;
   }
 

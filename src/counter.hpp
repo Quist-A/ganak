@@ -196,6 +196,10 @@ public:
   const FG& get_fg() const { return fg; }
   const FF& get_two() const { return two; }
   bool weighted() const { return fg->weighted(); }
+  auto get_trail_size() const { return trail.size(); }
+  bool check_any_new_sat(uint32_t prev_trail) const;
+  inline bool is_unknown(Lit lit) const;
+  inline bool is_unknown(uint32_t var) const;
 
 private:
   FG fg;
@@ -260,6 +264,8 @@ private:
   void symm_cubes(vector<Cube>& cubes);
 
   const DataAndStatistics& get_stats() const;
+
+  //
 
   //Debug stuff
   FF check_count(const bool also_incl_curr_and_later_dec = false);
@@ -336,8 +342,6 @@ private:
   inline const VarData &var(const Lit lit) const { return var_data[lit.var()]; }
   inline bool is_true(const Lit &lit) const { return values[lit] == T_TRI; }
   inline bool is_false(Lit lit) { return values[lit] == F_TRI; }
-  inline bool is_unknown(Lit lit) const;
-  inline bool is_unknown(uint32_t var) const;
   void set_confl_state(Lit a, Lit b);
   void set_confl_state(Clause* cl);
 
@@ -417,6 +421,11 @@ private:
   void recursive_cc_min();
   inline Antecedent add_uip_confl_cl(const vector<Lit> &literals);
   void fill_cl(const Antecedent& ante, Lit*& c, uint32_t& size, Lit p) const;
+
+  // Find if clause is sat
+  void linkin_any_sat();
+  vector<vector<uint32_t>> lit_to_clid_sat;
+  vector<vector<Lit>> sat_clid_to_lits;
 
   // Vivification
   void vivif_setup();

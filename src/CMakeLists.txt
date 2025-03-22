@@ -53,6 +53,7 @@ SET(SOURCES
     comp_analyzer.cpp
     comp_cache.cpp
     comp_types/comp_archetype.cpp
+    comp_types/comp.cpp
     comp_management.cpp
     counter.cpp
     statistics.cpp

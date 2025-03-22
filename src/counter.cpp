@@ -3836,6 +3836,7 @@ void Counter::end_irred_cls() {
 
   // This below will initialize the disjoint component analyzer (ana)
   comp_manager->initialize(watches, alloc, long_irred_cls);
+  linkin_any_sat();
 }
 
 #ifdef BUDDY_ENABLED
@@ -4229,4 +4230,56 @@ void Counter::print_cls_stats() const {
   verb_print(1, "Bin irred/red      " << setw(10) << num_bin_rred_cls/2 << " " << setw(10) << num_bin_red_cls/2);
   verb_print(1, "Long irred cls/tri " << setw(10) << long_irred_cls.size()-num_tri_red_cls << " " << setw(10) << num_tri_irred_cls);
   verb_print(1, "Long red cls/tri   " << setw(10) << long_red_cls.size()-num_tri_red_cls << " " << setw(10) << num_tri_red_cls);
+}
+
+
+// Find if clause is sat
+/* vector<vector<uint32_t>> lit_to_clid_sat; */
+/* vector<vector<Lit>> sat_clid_to_lits; */
+void Counter::linkin_any_sat() {
+  assert(lit_to_clid_sat.empty());
+  lit_to_clid_sat.resize(2*(nVars()+1));
+  assert(sat_clid_to_lits.empty());
+
+  uint32_t id = 0;
+  for(const auto& off: long_irred_cls) {
+    const auto& cl_o = *alloc->ptr(off);
+    vector<Lit> cl(cl_o.begin(), cl_o.end());
+    sat_clid_to_lits.push_back(cl);
+    for(const auto& l: cl) lit_to_clid_sat[l.raw()].push_back(id);
+    id++;
+    assert(sat_clid_to_lits.size() == id);
+  }
+
+  all_lits(i) {
+    Lit l1(i/2, i%2 == 0);
+    for(const auto& l2: watches[l1].binaries) {
+      if (!l2.red() && l1 < l2.lit()) {
+        vector<Lit> cl{l1, l2.lit()};
+        sat_clid_to_lits.push_back(cl);
+        for(const auto& l: cl) lit_to_clid_sat[l.raw()].push_back(id);
+        id++;
+        assert(sat_clid_to_lits.size() == id);
+      }
+    }
+  }
+}
+
+// We could also check the super-component itself and see if the clause is in it
+// if the clause is not in it, it means it doesn't matter if it got satisfied
+bool Counter::check_any_new_sat(uint32_t prev_trail) const {
+  for(uint32_t i = prev_trail; i < trail.size(); i++) {
+    Lit p = trail[i];
+    for(const auto& clid: lit_to_clid_sat[trail[i].raw()]) {
+      const auto& cl = sat_clid_to_lits[clid];
+      bool already_sat = false;
+      for(const auto& l: cl) {
+        if (l == p) continue;
+        if (val(l) == T_TRI && var(l).sublevel < prev_trail) already_sat = true;
+      }
+      if (!already_sat) return true;
+    }
+  }
+  cout << "returning FALSE from linkin_any_sat, prev trail:" << prev_trail << " trail now: " << trail.size() << endl;
+  return false;
 }

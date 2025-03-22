@@ -30,10 +30,13 @@ THE SOFTWARE.
 using std::vector;
 
 namespace GanakInt {
+class Counter;
 
 class Comp {
 public:
   Comp() = delete;
+  Comp(const Comp&) = delete;
+  Comp& operator=(const Comp&) = delete;
 
   void set_id(CacheEntryID id) { id_ = id; }
   CacheEntryID id() const { return id_; }
@@ -86,7 +89,6 @@ public:
     return vs_cls_data() + clauses_offs;
   }
 
-
   uint32_t const* cls_begin() const {
     return vs_cls_data() + clauses_offs;
   }
@@ -118,8 +120,11 @@ public:
     size = 0;
     clauses_offs = 0;
     bin_cls = 0;
+    trail_sz = 0;
     id_ = 0;
   }
+  void set_trail_sz(uint32_t sz) { trail_sz = sz; }
+  auto get_trail_sz() const { return trail_sz; }
 
 private:
   // data_ stores the comp data:
@@ -140,6 +145,7 @@ private:
   // once the model count is known, a link to the packed comp will be stored
   // in the hash table
   CacheEntryID id_ = 0;
+  uint32_t trail_sz = 0;
 };
 
 inline Comp* reserve_comp_space(uint32_t nVars, uint32_t num_clauses) {
@@ -150,5 +156,7 @@ inline Comp* reserve_comp_space(uint32_t nVars, uint32_t num_clauses) {
   ptr->clear();
   return ptr;
 }
+
+Comp* copy_comp(const Comp* other, const Counter* counter);
 
 }

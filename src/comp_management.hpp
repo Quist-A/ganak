@@ -94,6 +94,7 @@ public:
   // returns false if all comps have been processed
   inline bool find_next_remain_comp_of(StackLevel &top);
   void record_remaining_comps_for(StackLevel &top);
+  void deal_with_new_comp(StackLevel &top, const Comp& super_comp, Comp* comp);
   inline void sort_comp_stack_range(uint32_t start, uint32_t end);
   inline double get_alternate_score_comps(uint32_t start, uint32_t end) const;
 
@@ -167,7 +168,7 @@ inline bool CompManager::find_next_remain_comp_of(StackLevel& top) {
       "top.branchvar() was: "
       << top.var  <<" include_solution(1) fired. "
       " New Model cnt: " << *top.total_model_count()
-      << " left: " << *top.left_model_count() 
+      << " left: " << *top.left_model_count()
       << " right: " << *top.right_model_count() << " , returning.");
   return false;
 }
@@ -186,9 +187,10 @@ inline void CompManager::initialize(const LiteralIndexedVector<LitWatchList> & w
   //Add full comp
   Comp* ptr = reserve_comp_space(ana.get_max_var(), ana.get_max_clid());
   comp_stack.push_back(ptr);
+
   assert(comp_stack.size() == 2);
-  comp_stack.back()->create_init_comp(ana.get_max_var(), ana.get_max_clid(),
-      std::numeric_limits<uint32_t>::max());
+  // bin cls is just for early abort in analysis, set to max to ignore
+  comp_stack.back()->create_init_comp(ana.get_max_var(), ana.get_max_clid(), std::numeric_limits<uint32_t>::max());
   cache.init(*comp_stack.back(), hash_seed);
 }
 

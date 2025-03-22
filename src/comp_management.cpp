@@ -64,6 +64,35 @@ void CompManager::remove_cache_pollutions_of(const StackLevel &top) {
   /* SLOW_DEBUG_DO(cache.test_descendantstree_consistency()); */
 }
 
+void CompManager::deal_with_new_comp(StackLevel &top, const Comp& super_comp, Comp* comp) {
+  CacheableComp packed_comp(hash_seed, *comp);
+
+  // TODO Yash: count it 1-by-1 in case the number of variables & clauses is small
+  //       essentially, brute-forcing the count
+  if (!cache.find_comp_and_incorporate_cnt(top, comp->nVars(), packed_comp)) {
+    // Cache miss
+    comp_stack.push_back(comp);
+
+    comp->set_id(cache.new_comp(packed_comp, super_comp.id()));
+    stats.incorporate_cache_store(packed_comp, comp->nVars());
+#ifdef VERBOSE_DEBUG
+    cout << COLYEL2 "New comp. ID: " << comp->id()
+        << " num vars: " << comp->nVars() << " vars: ";
+    all_vars_in_comp(*comp, v) cout << *v << " ";
+    cout << endl;
+#endif
+  } else {
+    // Cache hit
+#ifdef VERBOSE_DEBUG
+    cout << COLYEL2 "Comp already in cache."
+        << " num vars: " << comp->nVars() << " vars: ";
+    all_vars_in_comp(*comp, v) cout << *v << " ";
+    cout << endl;
+#endif
+    free(comp);
+  }
+}
+
 // This creates potential component, checks if it's already in the
 // cache, and if so, uses that, otherwise, it creates it
 // and adds it to the component stack
@@ -72,41 +101,21 @@ void CompManager::record_remaining_comps_for(StackLevel &top) {
   const Comp& super_comp = get_super_comp(top);
   const uint32_t new_comps_start_ofs = comp_stack.size();
 
-  // This reinitializes archetype, sets up seen[] or all cls&vars unvisited (if unset), etc.
-  // Sets all unknown vars in seen[] and sets all clauses in seen[] to unvisited
-  // Also zeroes out frequency_scores. Sets num_long_cls and num_bin_cls to 0
-  ana.setup_analysis_context(top, super_comp);
+  if (counter->dec_level() >= 1 && !counter->check_any_new_sat(super_comp.get_trail_sz())) {
+    Comp *p_new_comp = copy_comp(&super_comp, counter);
+    deal_with_new_comp(top, super_comp, p_new_comp);
+  } else {
+    // This reinitializes archetype, sets up seen[] or all cls&vars unvisited (if unset), etc.
+    // Sets all unknown vars in seen[] and sets all clauses in seen[] to unvisited
+    // Also zeroes out frequency_scores. Sets num_long_cls and num_bin_cls to 0
+    ana.setup_analysis_context(top, super_comp);
 
-  all_vars_in_comp(super_comp, vt) {
-    debug_print("Going to NEXT var that's unvisited & set in this component... if it exists. Var: " << *vt);
-    if (ana.var_unvisited_sup_comp(*vt) && ana.explore_comp(*vt,
-          super_comp.num_long_cls(), super_comp.num_bin_cls())) {
-      Comp *p_new_comp = ana.make_comp_from_archetype();
-      CacheableComp packed_comp(hash_seed, *p_new_comp);
-
-      // TODO Yash: count it 1-by-1 in case the number of variables & clauses is small
-      //       essentially, brute-forcing the count
-      if (!cache.find_comp_and_incorporate_cnt(top, p_new_comp->nVars(), packed_comp)) {
-        // Cache miss
-        comp_stack.push_back(p_new_comp);
-
-        p_new_comp->set_id(cache.new_comp(packed_comp, super_comp.id()));
-        stats.incorporate_cache_store(packed_comp, p_new_comp->nVars());
-#ifdef VERBOSE_DEBUG
-        cout << COLYEL2 "New comp. ID: " << p_new_comp->id()
-            << " num vars: " << p_new_comp->nVars() << " vars: ";
-        all_vars_in_comp(*p_new_comp, v) cout << *v << " ";
-        cout << endl;
-#endif
-      } else {
-        // Cache hit
-#ifdef VERBOSE_DEBUG
-        cout << COLYEL2 "Comp already in cache."
-            << " num vars: " << p_new_comp->nVars() << " vars: ";
-        all_vars_in_comp(*p_new_comp, v) cout << *v << " ";
-        cout << endl;
-#endif
-        free(p_new_comp);
+    all_vars_in_comp(super_comp, vt) {
+      debug_print("Going to NEXT var that's unvisited & set in this component... if it exists. Var: " << *vt);
+      if (ana.var_unvisited_sup_comp(*vt) && ana.explore_comp(*vt,
+            super_comp.num_long_cls(), super_comp.num_bin_cls())) {
+        Comp *p_new_comp = ana.make_comp_from_archetype(counter->get_trail_size());
+        deal_with_new_comp(top, super_comp, p_new_comp);
       }
     }
   }
