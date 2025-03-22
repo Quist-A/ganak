@@ -28,13 +28,14 @@ using namespace GanakInt;
 
 Comp* GanakInt::copy_comp(const Comp* other, const Counter* counter) {
   Comp* ptr = reserve_comp_space(other->nVars(), other->num_long_cls());
+  ptr->clear();
   const uint32_t* p = other->vs_cls_data();
   while(*p != sentinel) {
     if (counter->is_unknown(*p))  ptr->add_var(*p);
     p++;
   }
   ptr->close_vars_data();
-  p++;
+  p++; // skip sentinel
   while(*p != sentinel) {
     ptr->add_cl(*p);
     p++;
