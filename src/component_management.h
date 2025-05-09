@@ -359,6 +359,7 @@ void ComponentManager::recordRemainingCompsFor(StackLevel &top)
         cout << "We have a cache miss for component: " << p_new_comp->id() << endl;
         p_new_comp->printcomp();
 #endif
+        cout << "New component with ID: " << p_new_comp->id() << endl;
       }
       else
       {

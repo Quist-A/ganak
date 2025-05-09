@@ -296,6 +296,7 @@ SOLVER_StateT Solver::countSAT()
       { // 1 - log_2(2.004)/64 = 0.9843
         return CHANGEHASH;
       }
+      //cout << "Next component -- Is branch " << stack_.top().isSecondBranch() << " for variable " << stack_.top().getbranchvar() << endl;
       decideLiteral();
       if (stopwatch_.timeBoundBroken())
         return TIMEOUT;
@@ -312,9 +313,23 @@ SOLVER_StateT Solver::countSAT()
         break;
     }
 
+    //cout << "Is branch " << stack_.top().isSecondBranch() << " for variable " << stack_.top().getbranchvar() << endl;
+
+    //DEBUG
+    //if (state == BACKTRACK){
+    //  cout << "We have a backtracking: assignment is True or False" << endl;
+    //}
+    //else {
+    //  cout << "We have no unprocessed component, so we backtrack " << stack_.top().getbranchvar() << endl;
+    //}
+    //END DEBUG
+
     state = backtrack();
-    if (state == RESTART)
+    if (state == RESTART){
+      cout << "RESTART solver " << endl;
       continue;
+    }
+      
     else if (state == EXIT)
       return SUCCESS;
     while (state != PROCESS_COMPONENT && !bcp())
@@ -543,9 +558,9 @@ void Solver::decideLiteral()
   }
   LiteralID theLit(max_score_var, polarity);
   stack_.top().setbranchvariable(max_score_var);
-#ifdef VERB
+//#ifdef VERB
   cout << "deciding on: " << theLit.val() << " " << max_score << endl;
-#endif
+//#endif
 
   setLiteralIfFree(theLit);
   statistics_.num_decisions_++;
@@ -579,9 +594,9 @@ void Solver::decideLiteral()
 
 retStateT Solver::backtrack()
 {
-#ifdef VERB
-  cout << "->backtracking " << stack_.top().getbranchvar() << endl;
-#endif
+//#ifdef VERB
+  cout << "->backtracking " << endl;//<< stack_.top().getbranchvar() << endl;
+//#endif
   assert(stack_.top().remaining_components_ofs() <=
          comp_manager_.component_stack_size());
 
@@ -615,6 +630,7 @@ retStateT Solver::backtrack()
       }
       else if (stack_.top().anotherCompProcessible())
       {
+        //cout << "Process other component (1)" << endl;
         return PROCESS_COMPONENT;
       }
       if (stack_.top().getBranchSols() != 0 &&
@@ -636,6 +652,7 @@ retStateT Solver::backtrack()
               stack_.top().remaining_components_ofs() < comp_manager_.component_stack_size() + 1);
           if (stack_.top().anotherCompProcessible())
           {
+            //cout << "Process other component (2)" << endl;
             return PROCESS_COMPONENT;
           }
         }
@@ -648,6 +665,7 @@ retStateT Solver::backtrack()
         stack_.top().changeBranch();
         reactivateTOS();
         setLiteralIfFree(aLit.neg(), NOT_A_CLAUSE);
+        //cout << "Resolved (1)" << endl;
         return RESOLVED;
       }
       comp_manager_.cacheModelCountOf(stack_.top().super_component(),
@@ -685,6 +703,7 @@ retStateT Solver::backtrack()
       }
       else if (stack_.top().anotherCompProcessible())
       {
+        //cout << "Process other component (3)" << endl;
         return PROCESS_COMPONENT;
       }
       if (!stack_.top().isSecondBranch())
@@ -702,6 +721,7 @@ retStateT Solver::backtrack()
         stack_.top().changeBranch();
         reactivateTOS();
         setLiteralIfFree(aLit.neg(), NOT_A_CLAUSE);
+        //cout << "Resolved (2)" << endl;
         return RESOLVED;
       }
       // OTHERWISE:  backtrack further
@@ -743,6 +763,10 @@ retStateT Solver::backtrack()
 
 retStateT Solver::resolveConflict()
 {
+  // DEBUG
+  //  cout << "resolving conflict " << endl;
+  // END DEBUG
+
   recordLastUIPCauses();
 
   if (statistics_.num_clauses_learned_ - last_ccl_deletion_time_ > statistics_.clause_deletion_interval())
@@ -770,13 +794,15 @@ retStateT Solver::resolveConflict()
   // END DEBUG
 
   stack_.top().mark_branch_unsat();
+  //cout << "Branch UNSAT"<< endl;
+
   //BEGIN Backtracking
   // maybe the other branch had some solutions
   if (stack_.top().isSecondBranch())
   {
     if (stack_.get_decision_level() == 1)
     {
-      cout << "We have solved halfed" << endl;
+      //cout << "We have solved halfed" << endl;
       config_.use_lso = false;
     }
     return BACKTRACK;
@@ -812,6 +838,7 @@ retStateT Solver::resolveConflict()
   reactivateTOS();
   setLiteralIfFree(lit.neg(), ant);
   //END Backtracking
+  //cout << "Resolved (3)" << endl;
   return RESOLVED;
 }
 
@@ -832,6 +859,7 @@ bool Solver::bcp()
   {
     bSucceeded = implicitBCP();
   }
+  //cout << "[bcp] result of unit propagation " << bSucceeded << endl;
   return bSucceeded;
 }
 

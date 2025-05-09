@@ -94,6 +94,9 @@ public:
      * @return The found cached component, nullptr otherwise.
      */
     CacheableComponent* manageNewComponent(StackLevel &top, CacheableComponent &packed_comp) {
+        //cout << "[component cache] Next component cache -- Is branch " << top.isSecondBranch() << " for variable " << top.getbranchvar() << endl;
+        if (top.isSecondBranch()) 
+            cout << "[component cache] switch to second branch" << " for variable " << top.getbranchvar() << endl;
         statistics_.num_cache_look_ups_++;
         unsigned table_ofs = packed_comp.hashkey() & table_size_mask_;
         CacheEntryID act_id = table_[table_ofs];
@@ -105,7 +108,8 @@ public:
                 statistics_.incorporate_cache_hit(packed_comp);
                 entry(act_id).increase_cache_hit();
                 top.includeSolution(entry(act_id).model_count());
-                //std::cout << "found hit of mc: " << entry(act_id).model_count() << endl;
+                std::cout << "Cache hit: component equivalent to component with ID "<<act_id << endl;
+                //std::cout << "---found hit of mc: " << entry(act_id).model_count() << endl; // ==> to outer while loop??
                 return &entry(act_id);
             }
             act_id = entry(act_id).next_bucket_element();
