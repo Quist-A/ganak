@@ -205,6 +205,8 @@ public:
         auto *edges = new std::vector<unsigned>[n]; // For each vertex, all its connections.
         int num_edges = 0;
 
+        auto *idMapInv_ = new int[2*num_variables]; 
+
         unsigned nodeIndex = 0;
         /* Create lit - lit edges */
         for (auto v_it = comp->varsBegin(); *v_it != varsSENTINEL; v_it++)
@@ -222,6 +224,11 @@ public:
             //std::cout << "connecting " << nodeIndex << "(" << (unsigned) LiteralID(*v_it, false) << ") and " << (nodeIndex + 1) << "\n";
             idMap_[(unsigned)lit_f] = nodeIndex++;
             idMap_[(unsigned)lit_t] = nodeIndex++;
+
+            idMapInv_[idMap_[(unsigned)lit_f]] = lit_f.val();
+            idMapInv_[idMap_[(unsigned)lit_t]] = lit_t.val();
+            //cout << idMap_[(unsigned)lit_f] << "\t" << lit_f.val() << "\t"<<idMapInv_[idMap_[(unsigned)lit_f]]<<endl;
+            //cout << idMap_[(unsigned)lit_t] << "\t" << lit_t.val() << "\t"<<idMapInv_[idMap_[(unsigned)lit_t]]<<endl;
         }
 
         /* Create cl-lit edges */
@@ -331,6 +338,19 @@ public:
         auto *cg = (sparsegraph *)malloc(sizeof(sparsegraph));
         SG_INIT(*cg);
         sparsenauty(&sg, lab, ptn, orbits, &options, &stats, cg);
+        //cout << "index \tnew index\tliteral\tnew literal" << endl;
+        //for (int i = 0; i < n; i++)
+        //{
+        //    cout << i << "\t" << lab[i] << "\t\t" << idMapInv_[i] << "\t" << idMapInv_[lab[i]] << endl;
+        //}
+        cout << "variable order: ";
+        for (int i = 0; i < n; i++){
+            if (lab[i] < 2 * num_variables)
+                cout << idMapInv_[lab[i]] << " ";
+        }
+        cout<<endl;
+        delete[] idMapInv_;
+
         long cg_hashkey = hashgraph_sg(cg, 0);
         SG_FREE(sg);
         delete[] edges;
