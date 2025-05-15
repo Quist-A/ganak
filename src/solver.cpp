@@ -595,7 +595,7 @@ void Solver::decideLiteral()
 retStateT Solver::backtrack()
 {
 //#ifdef VERB
-  cout << "->backtracking " << endl;//<< stack_.top().getbranchvar() << endl;
+  cout << "->backtracking " << stack_.top().getbranchvar() << "\t first/second branch " << stack_.top().isSecondBranch() << "\t number of solutions of branch " << stack_.top().getBranchSols() << endl;
 //#endif
   assert(stack_.top().remaining_components_ofs() <=
          comp_manager_.component_stack_size());
@@ -794,7 +794,7 @@ retStateT Solver::resolveConflict()
   // END DEBUG
 
   stack_.top().mark_branch_unsat();
-  //cout << "Branch UNSAT"<< endl;
+  cout << "branch is UNSAT\t first/second branch "<< stack_.top().isSecondBranch() << endl;
 
   //BEGIN Backtracking
   // maybe the other branch had some solutions

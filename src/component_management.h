@@ -271,6 +271,7 @@ bool ComponentManager::findNextRemainingComponentOf(StackLevel &top)
   // make sure, at least that the current branch is considered SAT
 
   top.includeSolution(1);
+  cout << "branch is SAT\t first/second branch "<< top.isSecondBranch() << endl;
 
   return false;
 }
