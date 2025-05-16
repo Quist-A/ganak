@@ -65,8 +65,10 @@ bool Solver::simplePreProcess()
   assert(literal_stack_.size() == 0);
   unsigned start_ofs = 0;
   //BEGIN process unit clauses
-  for (auto lit : unit_clauses_)
+  for (auto lit : unit_clauses_){
     setLiteralIfFree(lit);
+    cout << "set literal " << lit.val() << endl;
+  }
   //END process unit clauses
   bool succeeded = BCP(start_ofs);
 
@@ -90,10 +92,13 @@ bool Solver::prepFailedLiteralTest()
       if (isActive(v))
       {
         unsigned sz = literal_stack_.size();
-        setLiteralIfFree(LiteralID(v, true));
+        auto lit = LiteralID(v, true);
+        setLiteralIfFree(lit);
+        cout << "set literal " << lit.val() << endl;
         bool res = BCP(sz);
         while (literal_stack_.size() > sz)
         {
+          cout << "unset literal "<< literal_stack_.back().val() << endl;
           unSet(literal_stack_.back());
           literal_stack_.pop_back();
         }
@@ -101,7 +106,9 @@ bool Solver::prepFailedLiteralTest()
         if (!res)
         {
           sz = literal_stack_.size();
-          setLiteralIfFree(LiteralID(v, false));
+          auto lit = LiteralID(v, false);
+          setLiteralIfFree(lit);
+          cout << "set literal " << lit.val() << endl;
           if (!BCP(sz))
             return false;
         }
@@ -109,17 +116,22 @@ bool Solver::prepFailedLiteralTest()
         {
 
           sz = literal_stack_.size();
-          setLiteralIfFree(LiteralID(v, false));
+          auto lit = LiteralID(v, false);
+          setLiteralIfFree(lit);
+          cout << "set literal " << lit.val() << endl;
           bool resb = BCP(sz);
           while (literal_stack_.size() > sz)
           {
+            cout << "unset literal " << literal_stack_.back().val() << endl;
             unSet(literal_stack_.back());
             literal_stack_.pop_back();
           }
           if (!resb)
           {
             sz = literal_stack_.size();
-            setLiteralIfFree(LiteralID(v, true));
+            auto lit = LiteralID(v, true);
+            setLiteralIfFree(lit);
+            cout << "set literal " << lit.val() << endl;
             if (!BCP(sz))
               return false;
           }
@@ -665,7 +677,7 @@ retStateT Solver::backtrack()
         stack_.top().changeBranch();
         reactivateTOS();
         setLiteralIfFree(aLit.neg(), NOT_A_CLAUSE);
-        //cout << "Resolved (1)" << endl;
+        cout << "set literal " << aLit.neg().val() << endl;
         return RESOLVED;
       }
       comp_manager_.cacheModelCountOf(stack_.top().super_component(),
@@ -721,7 +733,7 @@ retStateT Solver::backtrack()
         stack_.top().changeBranch();
         reactivateTOS();
         setLiteralIfFree(aLit.neg(), NOT_A_CLAUSE);
-        //cout << "Resolved (2)" << endl;
+        cout << "set literal " << aLit.neg().val() << endl;
         return RESOLVED;
       }
       // OTHERWISE:  backtrack further
@@ -837,8 +849,8 @@ retStateT Solver::resolveConflict()
   LiteralID lit = TOS_decLit();
   reactivateTOS();
   setLiteralIfFree(lit.neg(), ant);
+  cout << "set literal " << lit.neg().val() << endl;
   //END Backtracking
-  //cout << "Resolved (3)" << endl;
   return RESOLVED;
 }
 
@@ -849,8 +861,10 @@ bool Solver::bcp()
   unsigned start_ofs = literal_stack_.size() - 1;
 
   //BEGIN process unit clauses
-  for (auto lit : unit_clauses_)
+  for (auto lit : unit_clauses_){
     setLiteralIfFree(lit);
+    cout << "set literal " << lit.val() << endl;
+  }
   //END process unit clauses
 
   bool bSucceeded = BCP(start_ofs);
@@ -877,7 +891,10 @@ bool Solver::BCP(unsigned start_at_stack_ofs)
         setConflictState(unLit, *bt);
         return false;
       }
-      setLiteralIfFree(*bt, Antecedent(unLit));
+      //setLiteralIfFree(*bt, Antecedent(unLit));
+      if(setLiteralIfFree(*bt, Antecedent(unLit))){
+        cout << "set literal " << bt[0].val() << endl;
+      }
     }
     //END Propagate Bin Clauses
     for (auto itcl = literal(unLit).watch_list_.rbegin();
@@ -907,6 +924,7 @@ bool Solver::BCP(unsigned start_at_stack_ofs)
         // for p_otherLit remain poss: Active or Resolved
         if (setLiteralIfFree(*p_otherLit, Antecedent(*itcl)))
         { // implication
+          cout << "set literal " << p_otherLit[0].val() << endl;
           if (isLitA)
             swap(*p_otherLit, *p_watchLit);
         }
@@ -976,8 +994,10 @@ bool Solver::implicitBCP()
         // s.t. after the tentative BCP call, we can learn a conflict clause
         // relative to the assignment of *jt
         stack_.startFailedLitTest();
-        setLiteralIfFree(lit);
-
+        //setLiteralIfFree(lit);
+        if (setLiteralIfFree(lit)){
+          std::cout << "set literal " << lit.val() << endl;
+        }
         assert(!hasAntecedent(lit));
 
         bool bSucceeded = BCP(sz);
@@ -988,6 +1008,7 @@ bool Solver::implicitBCP()
 
         while (literal_stack_.size() > sz)
         {
+          cout << "unset literal" << literal_stack_.back().val() << endl;
           unSet(literal_stack_.back());
           literal_stack_.pop_back();
         }
@@ -1003,8 +1024,12 @@ bool Solver::implicitBCP()
             if (it->size() == 0)
               cout << "EMPTY CLAUSE FOUND" << endl;
             // END DEBUG
-            setLiteralIfFree(it->front(),
-                             addUIPConflictClause(*it));
+            //setLiteralIfFree(it->front(),
+            //                  addUIPConflictClause(*it));
+            if(setLiteralIfFree(it->front(),
+                             addUIPConflictClause(*it))){
+                              cout << "set literal " << it->front().val() << endl;
+                             }
           }
           if (!BCP(sz))
             return false;
