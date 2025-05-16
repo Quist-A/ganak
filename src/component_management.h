@@ -352,15 +352,21 @@ void ComponentManager::recordRemainingCompsFor(StackLevel &top)
 
       // Check cache
       auto cached_hit_comp = cache_.manageNewComponent(top, *packed_comp);
+      if (top.isSecondBranch()) 
+            cout << "in second branch" << " for variable " << top.getbranchvar() << endl;
+        
       if (cached_hit_comp == nullptr)
       {
         component_stack_.push_back(p_new_comp);
-        p_new_comp->set_id(cache_.storeAsEntry(*packed_comp, super_comp.id()));
+        auto id = cache_.storeAsEntry(*packed_comp, super_comp.id());
+        p_new_comp->set_id(id);
 #ifdef VERB
         cout << "We have a cache miss for component: " << p_new_comp->id() << endl;
         p_new_comp->printcomp();
 #endif
-        cout << "New component with ID: " << p_new_comp->id() << endl;
+        //cout << "New component with ID: " << id;
+        cout << "New component with cache pointer " << &cache_.entry(id) << endl;
+        p_new_comp->printcomp();
       }
       else
       {
@@ -368,6 +374,9 @@ void ComponentManager::recordRemainingCompsFor(StackLevel &top)
         cout << "We have a cache hit for component." << endl;
         p_new_comp->printcomp();
 #endif
+        //cout << "cache hit with ID " ;
+        cout <<"cache hit: component equivalent to component with cache-pointer " << cached_hit_comp << endl;
+        p_new_comp->printcomp();
         //cache score should be decreased since we have a cache hit
         if (config_.use_csvsads)
         {
