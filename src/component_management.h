@@ -264,14 +264,18 @@ bool ComponentManager::findNextRemainingComponentOf(StackLevel &top)
 
   if (top.hasUnprocessedComponents())
   {
-
+    //cout << &cache_.entry(top.super_component()) << endl;
     return true;
   }
   // if no component remains
   // make sure, at least that the current branch is considered SAT
 
   top.includeSolution(1);
-  cout << "branch is SAT\t first/second branch "<< top.isSecondBranch() << endl;
+  //cout << "branch is SAT\t first/second branch "<< top.isSecondBranch() << endl;
+  FILE *fptr;
+  fptr = fopen("symganak.trace", "a");
+  fprintf(fptr, "branch is SAT  first/second branch %d\n", top.isSecondBranch());
+  fclose(fptr);
 
   return false;
 }
@@ -349,11 +353,21 @@ void ComponentManager::recordRemainingCompsFor(StackLevel &top)
         }
       }
       ana_.getArchetype().setComponentVarsSeen(p_new_comp);
+      
+      FILE *fptr;
 
       // Check cache
       auto cached_hit_comp = cache_.manageNewComponent(top, *packed_comp);
-      if (top.isSecondBranch()) 
-            cout << "in second branch" << " for variable " << top.getbranchvar() << endl;
+      if (top.isSecondBranch()) {
+            //fptr = fopen("symganak.trace", "a");
+            //fprintf(fptr, "in second branch for variable %d\n", top.getbranchvar());
+            //fclose(fptr);
+            //cout << "in second branch" << " for variable " << top.getbranchvar() << endl;
+            if (top.getbranchvar() == 0){
+              fptr = fopen("symganak.trace", "w"); // create empty file
+              fclose(fptr);
+            }
+      }
         
       if (cached_hit_comp == nullptr)
       {
@@ -365,8 +379,13 @@ void ComponentManager::recordRemainingCompsFor(StackLevel &top)
         p_new_comp->printcomp();
 #endif
         //cout << "New component with ID: " << id;
-        cout << "New component with cache pointer " << &cache_.entry(id) << endl;
-        p_new_comp->printcomp();
+        fptr = fopen("symganak.trace", "a");
+        fprintf(fptr, "New component with cache pointer %ld\nVars: ", &cache_.entry(id));
+        fclose(fptr);
+        p_new_comp->printToFile();
+        
+        //cout << "New component with cache pointer " << &cache_.entry(id) << endl;
+        //p_new_comp->printcomp();
       }
       else
       {
@@ -375,8 +394,12 @@ void ComponentManager::recordRemainingCompsFor(StackLevel &top)
         p_new_comp->printcomp();
 #endif
         //cout << "cache hit with ID " ;
-        cout <<"cache hit: component equivalent to component with cache-pointer " << cached_hit_comp << endl;
-        p_new_comp->printcomp();
+        fptr = fopen("symganak.trace", "a");
+        fprintf(fptr, "Cache hit: component equivalent to component with cache-pointer %ld\nVars: ", cached_hit_comp);
+        fclose(fptr);
+        p_new_comp->printToFile();
+        //cout <<"cache hit: component equivalent to component with cache-pointer " << cached_hit_comp << endl;
+        //p_new_comp->printcomp();
         //cache score should be decreased since we have a cache hit
         if (config_.use_csvsads)
         {

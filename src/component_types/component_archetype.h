@@ -343,12 +343,23 @@ public:
         //{
         //    cout << i << "\t" << lab[i] << "\t\t" << idMapInv_[i] << "\t" << idMapInv_[lab[i]] << endl;
         //}
-        cout << "variable order: ";
+        FILE *fptr;
+        fptr = fopen("symganak.trace", "a");
+        fprintf(fptr, "variable order: ");
         for (int i = 0; i < n; i++){
-            if (lab[i] < 2 * num_variables)
-                cout << idMapInv_[lab[i]] << " ";
+            if (lab[i] < 2 * num_variables){
+                fprintf(fptr, "%d ", idMapInv_[lab[i]]);
+                //cout << idMapInv_[lab[i]] << " ";
+            }
         }
-        cout<<endl;
+        fprintf(fptr, "\n");
+        fclose(fptr);
+        //cout << "variable order: ";
+        //for (int i = 0; i < n; i++){
+        //    if (lab[i] < 2 * num_variables)
+        //        cout << idMapInv_[lab[i]] << " ";
+        //}
+        //cout<<endl;
         delete[] idMapInv_;
 
         long cg_hashkey = hashgraph_sg(cg, 0);

@@ -105,6 +105,19 @@ public:
     }
   }
 
+  void printToFile() {
+    FILE *fptr;
+    fptr = fopen("symganak.trace", "a");
+    for (unsigned int i : data_) {
+      if (i == 0) {
+        fprintf(fptr, "\n");
+        break;
+      }
+      fprintf(fptr, "%d ", i);
+    }
+    fclose(fptr);
+  }
+
 private:
   // data_ stores the component data:
   // for better cache performance the

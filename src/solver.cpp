@@ -67,7 +67,11 @@ bool Solver::simplePreProcess()
   //BEGIN process unit clauses
   for (auto lit : unit_clauses_){
     setLiteralIfFree(lit);
-    cout << "set literal " << lit.val() << endl;
+    //cout << "set literal " << lit.val() << endl;
+    FILE *fptr;
+    fptr = fopen("symganak.trace", "a");
+    fprintf(fptr, "set literal %d\n", lit.val());
+    fclose(fptr);
   }
   //END process unit clauses
   bool succeeded = BCP(start_ofs);
@@ -94,11 +98,18 @@ bool Solver::prepFailedLiteralTest()
         unsigned sz = literal_stack_.size();
         auto lit = LiteralID(v, true);
         setLiteralIfFree(lit);
-        cout << "set literal " << lit.val() << endl;
+        //cout << "set literal " << lit.val() << endl;
+        FILE *fptr;
+        fptr = fopen("symganak.trace", "a");
+        fprintf(fptr, "set literal %d\n", lit.val());
+        fclose(fptr);
         bool res = BCP(sz);
         while (literal_stack_.size() > sz)
         {
-          cout << "unset literal "<< literal_stack_.back().val() << endl;
+          //cout << "unset literal "<< literal_stack_.back().val() << endl;
+          fptr = fopen("symganak.trace", "a");
+          fprintf(fptr, "unset literal %d\n", literal_stack_.back().val());
+          fclose(fptr);
           unSet(literal_stack_.back());
           literal_stack_.pop_back();
         }
@@ -108,7 +119,10 @@ bool Solver::prepFailedLiteralTest()
           sz = literal_stack_.size();
           auto lit = LiteralID(v, false);
           setLiteralIfFree(lit);
-          cout << "set literal " << lit.val() << endl;
+          //cout << "set literal " << lit.val() << endl;
+          fptr = fopen("symganak.trace", "a");
+          fprintf(fptr, "set literal %d\n", lit.val());
+          fclose(fptr);
           if (!BCP(sz))
             return false;
         }
@@ -118,11 +132,17 @@ bool Solver::prepFailedLiteralTest()
           sz = literal_stack_.size();
           auto lit = LiteralID(v, false);
           setLiteralIfFree(lit);
-          cout << "set literal " << lit.val() << endl;
+          //cout << "set literal " << lit.val() << endl;
+          fptr = fopen("symganak.trace", "a");
+          fprintf(fptr, "set literal %d\n", lit.val());
+          fclose(fptr);
           bool resb = BCP(sz);
           while (literal_stack_.size() > sz)
           {
-            cout << "unset literal " << literal_stack_.back().val() << endl;
+            //cout << "unset literal " << literal_stack_.back().val() << endl;
+            fptr = fopen("symganak.trace", "a");
+            fprintf(fptr, "unset literal %d\n", literal_stack_.back().val());
+            fclose(fptr);
             unSet(literal_stack_.back());
             literal_stack_.pop_back();
           }
@@ -131,7 +151,10 @@ bool Solver::prepFailedLiteralTest()
             sz = literal_stack_.size();
             auto lit = LiteralID(v, true);
             setLiteralIfFree(lit);
-            cout << "set literal " << lit.val() << endl;
+            //cout << "set literal " << lit.val() << endl;
+            fptr = fopen("symganak.trace", "a");
+            fprintf(fptr, "set literal %d\n", lit.val());
+            fclose(fptr);
             if (!BCP(sz))
               return false;
           }
@@ -571,8 +594,13 @@ void Solver::decideLiteral()
   LiteralID theLit(max_score_var, polarity);
   stack_.top().setbranchvariable(max_score_var);
 //#ifdef VERB
-  cout << "deciding on: " << theLit.val() << " " << max_score << endl;
+  //cout << "deciding on: " << theLit.val() << " " << max_score << endl;
 //#endif
+
+  FILE *fptr;
+  fptr = fopen("symganak.trace", "a");
+  fprintf(fptr, "deciding on %d \n", theLit.val());
+  fclose(fptr);
 
   setLiteralIfFree(theLit);
   statistics_.num_decisions_++;
@@ -607,8 +635,13 @@ void Solver::decideLiteral()
 retStateT Solver::backtrack()
 {
 //#ifdef VERB
-  cout << "->backtracking " << stack_.top().getbranchvar() << "\t first/second branch " << stack_.top().isSecondBranch() << "\t number of solutions of branch " << stack_.top().getBranchSols() << endl;
+  //cout << "->backtracking " << stack_.top().getbranchvar() << "\t first/second branch " << stack_.top().isSecondBranch() << "\t number of solutions of branch " << stack_.top().getBranchSols() << endl;
 //#endif
+  FILE *fptr;
+  fptr = fopen("symganak.trace", "a");
+  fprintf(fptr, "backtracking %d first/second branch %d\n", stack_.top().getbranchvar(), stack_.top().isSecondBranch());
+  fclose(fptr);
+
   assert(stack_.top().remaining_components_ofs() <=
          comp_manager_.component_stack_size());
 
@@ -677,7 +710,11 @@ retStateT Solver::backtrack()
         stack_.top().changeBranch();
         reactivateTOS();
         setLiteralIfFree(aLit.neg(), NOT_A_CLAUSE);
-        cout << "set literal " << aLit.neg().val() << endl;
+        //cout << "set literal " << aLit.neg().val() << endl;
+        FILE *fptr;
+        fptr = fopen("symganak.trace", "a");
+        fprintf(fptr, "set literal %d\n", aLit.neg().val());
+        fclose(fptr);
         return RESOLVED;
       }
       comp_manager_.cacheModelCountOf(stack_.top().super_component(),
@@ -733,7 +770,11 @@ retStateT Solver::backtrack()
         stack_.top().changeBranch();
         reactivateTOS();
         setLiteralIfFree(aLit.neg(), NOT_A_CLAUSE);
-        cout << "set literal " << aLit.neg().val() << endl;
+        //cout << "set literal " << aLit.neg().val() << endl;
+        FILE *fptr;
+        fptr = fopen("symganak.trace", "a");
+        fprintf(fptr, "set literal %d\n", aLit.neg().val());
+        fclose(fptr);
         return RESOLVED;
       }
       // OTHERWISE:  backtrack further
@@ -806,7 +847,13 @@ retStateT Solver::resolveConflict()
   // END DEBUG
 
   stack_.top().mark_branch_unsat();
-  cout << "branch is UNSAT\t first/second branch "<< stack_.top().isSecondBranch() << endl;
+  //cout << "branch is UNSAT\t first/second branch "<< stack_.top().isSecondBranch() << endl;
+
+  FILE *fptr;
+  fptr = fopen("symganak.trace", "a");
+  fprintf(fptr, "branch is UNSAT  first/second branch %d\n", stack_.top().isSecondBranch());
+  fclose(fptr);
+  
 
   //BEGIN Backtracking
   // maybe the other branch had some solutions
@@ -849,7 +896,10 @@ retStateT Solver::resolveConflict()
   LiteralID lit = TOS_decLit();
   reactivateTOS();
   setLiteralIfFree(lit.neg(), ant);
-  cout << "set literal " << lit.neg().val() << endl;
+  //cout << "set literal " << lit.neg().val() << endl;
+  fptr = fopen("symganak.trace", "a");
+  fprintf(fptr, "set literal %d\n", lit.neg().val());
+  fclose(fptr);
   //END Backtracking
   return RESOLVED;
 }
@@ -863,7 +913,11 @@ bool Solver::bcp()
   //BEGIN process unit clauses
   for (auto lit : unit_clauses_){
     setLiteralIfFree(lit);
-    cout << "set literal " << lit.val() << endl;
+    //cout << "set literal " << lit.val() << endl;
+    FILE *fptr;
+    fptr = fopen("symganak.trace", "a");
+    fprintf(fptr, "set literal %d\n", lit.val());
+    fclose(fptr);
   }
   //END process unit clauses
 
@@ -893,7 +947,11 @@ bool Solver::BCP(unsigned start_at_stack_ofs)
       }
       //setLiteralIfFree(*bt, Antecedent(unLit));
       if(setLiteralIfFree(*bt, Antecedent(unLit))){
-        cout << "set literal " << bt[0].val() << endl;
+        //cout << "set literal " << bt[0].val() << endl;
+        FILE *fptr;
+        fptr = fopen("symganak.trace", "a");
+        fprintf(fptr, "set literal %d\n", bt[0].val());
+        fclose(fptr);
       }
     }
     //END Propagate Bin Clauses
@@ -924,7 +982,11 @@ bool Solver::BCP(unsigned start_at_stack_ofs)
         // for p_otherLit remain poss: Active or Resolved
         if (setLiteralIfFree(*p_otherLit, Antecedent(*itcl)))
         { // implication
-          cout << "set literal " << p_otherLit[0].val() << endl;
+          //cout << "set literal " << p_otherLit[0].val() << endl;
+          FILE *fptr;
+          fptr = fopen("symganak.trace", "a");
+          fprintf(fptr, "set literal %d\n", p_otherLit[0].val());
+          fclose(fptr);
           if (isLitA)
             swap(*p_otherLit, *p_watchLit);
         }
@@ -996,7 +1058,11 @@ bool Solver::implicitBCP()
         stack_.startFailedLitTest();
         //setLiteralIfFree(lit);
         if (setLiteralIfFree(lit)){
-          std::cout << "set literal " << lit.val() << endl;
+          //std::cout << "set literal " << lit.val() << endl;
+          FILE *fptr;
+          fptr = fopen("symganak.trace", "a");
+          fprintf(fptr, "set literal %d\n", lit.val());
+          fclose(fptr);
         }
         assert(!hasAntecedent(lit));
 
@@ -1008,7 +1074,11 @@ bool Solver::implicitBCP()
 
         while (literal_stack_.size() > sz)
         {
-          cout << "unset literal" << literal_stack_.back().val() << endl;
+          //cout << "unset literal" << literal_stack_.back().val() << endl;
+          FILE *fptr;
+          fptr = fopen("symganak.trace", "a");
+          fprintf(fptr, "unset literal %d\n", literal_stack_.back().val());
+          fclose(fptr);
           unSet(literal_stack_.back());
           literal_stack_.pop_back();
         }
@@ -1028,7 +1098,11 @@ bool Solver::implicitBCP()
             //                  addUIPConflictClause(*it));
             if(setLiteralIfFree(it->front(),
                              addUIPConflictClause(*it))){
-                              cout << "set literal " << it->front().val() << endl;
+                              //cout << "set literal " << it->front().val() << endl;
+                              FILE *fptr;
+                              fptr = fopen("symganak.trace", "a");
+                              fprintf(fptr, "set literal %d\n", it->front().val());
+                              fclose(fptr);
                              }
           }
           if (!BCP(sz))
