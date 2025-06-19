@@ -358,16 +358,16 @@ void ComponentManager::recordRemainingCompsFor(StackLevel &top)
 
       // Check cache
       auto cached_hit_comp = cache_.manageNewComponent(top, *packed_comp);
-      if (top.isSecondBranch()) {
+      //if (top.isSecondBranch()) {
             //fptr = fopen("symganak.trace", "a");
             //fprintf(fptr, "in second branch for variable %d\n", top.getbranchvar());
             //fclose(fptr);
             //cout << "in second branch" << " for variable " << top.getbranchvar() << endl;
-            if (top.getbranchvar() == 0){
-              fptr = fopen("symganak.trace", "w"); // create empty file
-              fclose(fptr);
-            }
-      }
+      //      if (top.getbranchvar() == 0){
+      //        fptr = fopen("symganak.trace", "w"); // create empty file
+      //        fclose(fptr);
+      //      }
+      //}
         
       if (cached_hit_comp == nullptr)
       {

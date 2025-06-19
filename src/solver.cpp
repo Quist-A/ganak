@@ -192,6 +192,10 @@ void Solver::solve(const string &file_name)
   stopwatch_.start();
   statistics_.input_file_ = file_name;
 
+  FILE *fptr;
+  fptr = fopen("symganak.trace", "w"); // create empty file
+  fclose(fptr);
+
   if (!createfromFile(file_name))
   {
     statistics_.exit_state_ = SUCCESS;
@@ -361,6 +365,10 @@ SOLVER_StateT Solver::countSAT()
 
     state = backtrack();
     if (state == RESTART){
+      FILE *fptr;
+      fptr = fopen("symganak.trace", "a");
+      fprintf(fptr, "restart\n");
+      fclose(fptr);
       cout << "RESTART solver " << endl;
       continue;
     }
@@ -645,6 +653,7 @@ retStateT Solver::backtrack()
   assert(stack_.top().remaining_components_ofs() <=
          comp_manager_.component_stack_size());
 
+  /*
   if (config_.use_lso && statistics_.num_decisions_ >=
                              config_.lsoafterdecisions)
   {
@@ -665,6 +674,7 @@ retStateT Solver::backtrack()
     statistics_.num_decisions_ = 0;
     return RESTART;
   }
+  */
   if (!isindependent && config_.perform_projectedmodelcounting)
   {
     do
