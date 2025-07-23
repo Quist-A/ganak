@@ -251,8 +251,8 @@ def trace_to_nnf(content,output_file):
             elif (content[line][0:12] == "backtracking"):
                 #print(str(lines_stack[-1][0])+" O "+str(var)+" 2 "+str(first_component_output_line)+" "+str(output_line+1), file=f)
                 #lines_stack.pop()
-                if lines_stack == []:
-                    print("empty lines_stack")
+                #if lines_stack == []:
+                #    print("empty lines_stack")
                 line += 1
                 continue
             elif (content[line][0:16] == "in second branch"): #component in new branch
@@ -471,7 +471,7 @@ file.close()
 
 
 trace_to_nnf(content,"output.unnf") # outputs unordered nnf
-print("halfway")
+#print("halfway")
 order_unnf("output.unnf","output.nnf")
 
 
