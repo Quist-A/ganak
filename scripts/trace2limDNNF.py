@@ -314,14 +314,18 @@ def trace_to_nnf(content,output_file):
 # In[9]:
 
 
-def find_N_variables(content):
+def find_N_variables_and_total_permutation_size(content):
     N_variables = 0
+    total_permutation_size = 0
     for line in content:
         for elt in line.split():
             if ">" in elt:
+                total_permutation_size += 1
+                
                 lit1,lit2 = elt.split(">")
                 N_variables = np.max([N_variables,abs(int(lit1)),abs(int(lit2))])
-    return N_variables
+                
+    return (N_variables,total_permutation_size)
 
 def order_nnf(file):
     """
@@ -337,9 +341,9 @@ def order_nnf(file):
     N_nodes = len(content)
     N_edges = 0
 
-    N_variables = find_N_variables(content)
+    (N_variables,total_permutation_size) = find_N_variables_and_total_permutation_size(content)
     # we don't know for sure here which variables were in original formula: free variables are not in trace of symganak. 
-    # Should be printed to trace of symganak
+    # Should be printed to trace of symganak to be completely sure
 
     for line in range(len(content)): # handle leaves
         if content[line][0] == "L":
@@ -390,7 +394,7 @@ def order_nnf(file):
     for i in range(len(new_line_order)):
         inv_new_line_order[new_line_order[i]] = i
     with open(file, "w") as f:
-        print("nnf {} {} {}".format(N_nodes,N_edges,N_variables),file=f)
+        print("nnf {} {} {} {}".format(N_nodes,N_edges,N_variables,total_permutation_size),file=f)
         for i in range(len(content)):
             line = content[inv_new_line_order[i]]
             comparts = line.split()
