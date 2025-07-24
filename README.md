@@ -1,3 +1,14 @@
+# Compiler version of SYMGANAK by Arend-Jan Quist
+
+To run the compiler version of SYMGANAK, first install symganak as described below. Then run
+
+```
+cd scripts
+python compiler-cnf2symDNNF.py <cnf>
+```
+
+The resulting symDNNF is exported to the result folder.
+
 # SYMGANAK- Symmetric Component Caching for Model Counting on Combinatorial Instances
 SYMGANAK  takes in a CNF formula `F` and a confidence `delta` as input and returns `count` such that `count` is the number of solutions of `F` with confidence at least `1 - delta`. 
 
