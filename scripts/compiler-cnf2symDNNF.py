@@ -15,7 +15,7 @@ input_file = input_folder_file[1]
 filename = os.path.splitext(input_file)[0]
 
 startTime = time.time()
-os.system('./../build/sym_ganak -q '+input_folder+input_file)
+os.system('./../build/sym_ganak -q '+input_folder_file)
 halfTime = time.time()
 os.system('python trace2symDNNF.py')
 endTime = time.time()
